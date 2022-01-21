@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+     <!--App Colors-->
+    <color name="app_background_primary">#ddeaea</color>
+    <color name="screen_title_color">#006c6c</color>
+    <color name="card_view_background">#afd5d5</color>
+</resources>

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:bind="http://schemas.android.com/tools">
+
+    <data>
+        <variable
+            name="position"
+            type="Integer" />
+       <variable
+            name="scale"
+            type="com.epamgarage.wirelessweighingscale.room.model.WeighingScale" />
+        <variable
+            name="callback"
+            type="com.epamgarage.wirelessweighingscale.callbacks.ControlButtonsClickListener" />
+
+        <import type="android.view.View" />
+    </data>
+
+    <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            app:cardBackgroundColor="@color/card_view_background"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="8dp"
+            app:cardMaxElevation="10dp"
+            app:cardPreventCornerOverlap="true"
+            app:cardUseCompatPadding="false">
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:behavior_hideable="false"
+                    app:behavior_peekHeight="90dp"
+                    app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+                    <TextView
+                        android:id="@+id/scaleWeight"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/weighing_scale"
+                        android:gravity="end|center"
+                        android:padding="15sp"
+                        android:text="@{scale.weights}"
+                        android:textColor="@color/black"
+                        android:textSize="64sp"
+                        android:textStyle="normal" />
+
+                    <androidx.coordinatorlayout.widget.CoordinatorLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginTop="-10dp"
+                        android:background="@color/white"
+                        android:visibility="@{showHideScaleControls.checked? View.VISIBLE : View.GONE, default=gone}">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical">
+
+                            <View
+                                android:id="@+id/nullView"
+                                android:layout_width="match_parent"
+                                android:layout_height="20dp"
+                                android:background="@color/card_view_background" />
+
+                            <LinearLayout
+                                android:id="@+id/layout_control_buttons"
+                                android:layout_width="match_parent"
+                                android:layout_height="55dp"
+                                android:background="@android:color/white"
+                                android:gravity="center"
+                                android:orientation="horizontal">
+
+                                <Button
+                                    android:id="@+id/tareBtn"
+                                    style="@style/BottomSheetButton"
+                                    android:layout_width="55dp"
+                                    android:layout_height="25dp"
+                                    android:onClick="@{(v) -> callback.onTareClick(position)}"
+                                    android:text="@string/tare" />
+
+                                <Button
+                                    android:id="@+id/modeBtn"
+                                    style="@style/BottomSheetButton"
+                                    android:layout_width="55dp"
+                                    android:layout_height="25dp"
+                                    android:onClick="@{(v) -> callback.onModeClick(position)}"
+                                    android:text="@string/mode" />
+
+                                <Button
+                                    android:id="@+id/mPlusIncBtn"
+                                    style="@style/BottomSheetButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="25dp"
+                                    android:onClick="@{(v) -> callback.onMPlusIncClick(position)}"
+                                    android:text="@string/m_plus_Inc" />
+
+                                <Button
+                                    android:id="@+id/mRShiftBtn"
+                                    style="@style/BottomSheetButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="25dp"
+                                    android:onClick="@{(v) -> callback.onMRShiftClick(position)}"
+                                    android:text="@string/mr_shift" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginBottom="12dp"
+                            android:clickable="false"
+                            android:contentDescription="@string/fab"
+                            android:onClick="@{(v) -> callback.onRefreshScaleFABClick(position)}"
+                            android:src="@mipmap/ic_refresh"
+                            app:layout_anchor="@id/layout_control_buttons"
+                            app:layout_anchorGravity="top|left|start"
+                            app:useCompatPadding="false" />
+
+                    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/scaleDetails"
+                        android:layout_width="match_parent"
+                        android:layout_height="25dp"
+                        android:background="@{showHideScaleControls.checked ? @color/card_view_background: @color/white}"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/scaleTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_marginStart="10dp"
+                            android:fontFamily="@font/montserrat_medium"
+                            android:text="@string/indicator_1"
+                            android:textColor="@color/screen_title_color"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            bind:ignore="RelativeOverlap"
+                            bind:scaleTitle="@{scale.name}"/>
+
+                        <me.ibrahimsn.lib.CirclesLoadingView
+                            android:id="@+id/view_loading"
+                            android:layout_width="150dp"
+                            android:layout_height="match_parent"
+                            app:circleRadius="8dp"
+                            app:circleMargin="8dp"
+                            android:visibility="@{scale.visible}"
+                            app:animDistance="6dp"
+                            android:layout_toRightOf="@id/scaleTitle"
+                            app:animDuration="500"
+                            app:animDelay="150"
+                            app:animInterpolator="accelerateDecelerate"
+                             />
+
+                        <CheckBox
+                            android:id="@+id/showHideScaleControls"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_centerInParent="true"
+                            android:layout_marginEnd="60dp"
+                            android:layout_alignParentEnd="true"
+                            android:layout_centerHorizontal="true"
+                            android:background="@drawable/show_hide_selector"
+                            android:button="@null" />
+                    </RelativeLayout>
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/scaleIndicator"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:clickable="false"
+                    android:contentDescription="@string/scale_indicator"
+                    android:focusable="false"
+                    android:adjustViewBounds="true"
+                    android:layout_marginRight="-14dp"
+                    android:layout_marginBottom="-12dp"
+                    android:layout_gravity="bottom|right"
+                    bind:avatar="@{scale.type}"/>
+
+
+                <ImageView
+                    android:id="@+id/scaleDelete"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:padding="15dp"
+                    android:onClick="@{(v) -> callback.onRemoveClick(position)}"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginLeft="5dp"
+                    android:contentDescription="@string/scale_indicator"
+                    android:focusable="false"
+                    android:background="@mipmap/ic_cancel"
+                    android:adjustViewBounds="true"
+                    android:layout_gravity="top|left"
+                    />
+
+            </FrameLayout>
+
+        </androidx.cardview.widget.CardView>
+
+</layout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape
+            android:shape="rectangle">
+        <corners
+            android:bottomLeftRadius="@dimen/dimen_button_radius"
+            android:bottomRightRadius="@dimen/dimen_button_radius"
+            android:topLeftRadius="@dimen/dimen_button_radius"
+            android:topRightRadius="@dimen/dimen_button_radius" />
+        <solid
+            android:color="#80323232" />
+        </shape>
+    </item>
+    <item>
+        <shape
+            android:shape="rectangle">
+            <corners
+                android:bottomLeftRadius="@dimen/dimen_button_radius"
+                android:bottomRightRadius="@dimen/dimen_button_radius"
+                android:topLeftRadius="@dimen/dimen_button_radius"
+                android:topRightRadius="@dimen/dimen_button_radius" />
+            <solid
+                android:color="@color/app_background_primary" />
+        </shape>
+    </item>
+</selector>

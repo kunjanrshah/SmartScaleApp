@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".MainActivity">
+
+    <data>
+
+        <variable
+            name="viewModel"
+            type="com.epamgarage.wirelessweighingscale.viewmodel.WeighingScaleViewModel" />
+
+        <import type="android.view.View" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/app_background_primary"
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/app_background_primary"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme"
+            app:title="@string/screen_title"
+            app:titleTextAppearance="@style/TitleTextAppearance"
+            app:titleTextColor="@color/screen_title_color" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/weighingScaleRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:visibility="@{viewModel.showEmptyView? View.GONE : View.VISIBLE}" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="@font/montserrat_medium"
+            android:gravity="center"
+            android:text="@string/click_button_to_add_new_scale"
+            android:textColor="@color/screen_title_color"
+            android:textSize="18sp"
+            android:visibility="@{viewModel.showEmptyView? View.VISIBLE : View.GONE}" />
+
+    </LinearLayout>
+</layout>
