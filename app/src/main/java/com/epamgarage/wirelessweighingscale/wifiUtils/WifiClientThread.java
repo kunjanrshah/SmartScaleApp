@@ -50,6 +50,7 @@ public class WifiClientThread implements Runnable {
                 System.out.print(message);
                 System.out.flush();
                 Log.e(TAG, "message from server: " + message);
+                message=message.substring(0,7);
                 showMessage(message,macAddress);
             }
 
