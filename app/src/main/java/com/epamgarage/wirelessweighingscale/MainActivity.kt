@@ -585,6 +585,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             setBluetooth(false)
             weighingScaleListAdapter.blePos = -1
         }else if(scale.type == ScaleType.WIFI){
+            clientThread?.setStop()
             clientThread=null
         }
 

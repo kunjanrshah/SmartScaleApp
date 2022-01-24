@@ -105,4 +105,12 @@ public class WifiClientThread implements Runnable {
         }
         return macAddress;
     }
+
+    public void setStop(){
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
