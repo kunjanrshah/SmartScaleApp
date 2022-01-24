@@ -690,17 +690,9 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
     override fun onDestroy() {
         super.onDestroy()
-
-        if(weighingScaleListAdapter.blePos>0){
-            mBluetoothLEService?.disconnect()
-            mBluetoothLEService?.close()
-            try {
-                unregisterReceiver(mGattUpdateReceiver)
-                unregisterReceiver(mReceiver)
-            }catch (e:Exception){
-                e.printStackTrace()
-            }
+        if(weighingScaleListAdapter.blePos!=-1){
             setBluetooth(false)
+            closeConnection()
         }
     }
 
