@@ -10,15 +10,15 @@ import android.content.*
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.location.LocationManager
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
-import android.os.ParcelUuid
+import android.net.wifi.WifiManager
+import android.os.*
+import android.text.format.Formatter.formatIpAddress
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -45,6 +45,13 @@ import com.google.android.gms.location.*
 import java.util.*
 import javax.inject.Inject
 
+import android.widget.LinearLayout
+import androidx.core.content.ContentProviderCompat
+import com.epamgarage.wirelessweighingscale.wifiUtils.WifiUtils.*
+import com.google.android.material.snackbar.Snackbar
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.lifecycle.LifecycleOwner
+
 
 class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -52,6 +59,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     @Inject
     lateinit var factory: WeighingScaleViewModelFactory
     private var recyclerView: RecyclerView? = null
+    private var llParent:LinearLayout?=null
     private lateinit var scaleViewModel: WeighingScaleViewModel
     private val REQUEST_LOCATION = 199
     private lateinit var mLocationRequest: LocationRequest
@@ -80,6 +88,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         setUpToolBar()
         setUpRecyclerView(activityMainBinding)
         setUpViewModel(activityMainBinding)
+        llParent=activityMainBinding.llParent;
 
     }
 
@@ -98,9 +107,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             when {
                 BluetoothLEService.ACTION_GATT_CONNECTED == action -> {
 
-                    weighingScaleListAdapter!!.getItemAtPosition(weighingScaleListAdapter!!.blePos).name =
-                        bluetoothDevice!!.address
-                    weighingScaleListAdapter?.notifyDataSetChanged()
+                    weighingScaleListAdapter.getItemAtPosition(weighingScaleListAdapter.blePos).name = bluetoothDevice!!.address
+                    weighingScaleListAdapter.notifyDataSetChanged()
 
                 }
                 BluetoothLEService.ACTION_GATT_DISCONNECTED == action -> {
@@ -122,7 +130,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             if (data != null) {
                 var output = ""
                 for (i in data.indices) {
-                    output += data[i].toChar()
+                    output += data[i].toInt().toChar()
                 }
                 Log.d(TAG, "output: " + output)
                 weighingScaleListAdapter.bleTextView?.text = output.trim()
@@ -151,7 +159,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
                     }
                     mNotifyCharacteristic = gattCharacteristic
                     if (mNotifyCharacteristic != null) {
-                        val charaProp = mNotifyCharacteristic?.getProperties()
+                        val charaProp = mNotifyCharacteristic?.properties
                         if (charaProp != null) {
                             if ((charaProp or BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
                              //   mBluetoothLEService!!.readCharacteristic(mNotifyCharacteristic!!)
@@ -167,6 +175,38 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
                     }
                     return
+                }
+            }
+        }
+    }
+
+    private fun getSSID():String{
+        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+        val info = wifiManager.connectionInfo
+        return info.ssid.replace("\"", "")
+    }
+
+    private val wifiStateReceiver:BroadcastReceiver=object :BroadcastReceiver(){
+        @RequiresApi(Build.VERSION_CODES.M)
+        override fun onReceive(context: Context?, intent: Intent) {
+
+            var flag =false
+            scaleViewModel.getAllScales.observe(this@MainActivity){ scalesList ->
+
+                scalesList.forEach {
+                    if(it.type == ScaleType.WIFI){
+                        flag=true
+                    }
+                }
+            }
+
+            if(flag){
+                if (getSSID().equals(SSID)){
+                    val snbar:Snackbar=Snackbar.make(llParent!!, WIFI_MSG_SCALE_CONNECTED, Snackbar.LENGTH_LONG);
+                    snbar.show()
+                }else{
+                    val snbar:Snackbar=Snackbar.make(llParent!!, WIFI_MSG_CONNECT_SCALE, Snackbar.LENGTH_INDEFINITE);
+                    snbar.show()
                 }
             }
         }
@@ -200,7 +240,11 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             .setIcon(android.R.drawable.ic_dialog_alert) //set title
             .setTitle(resources.getString(R.string.app_name)) //set message
             .setMessage("Please turn on Bluetooth") //set positive button
-            .setPositiveButton("Ok") { dialogInterface, i -> setBluetooth(true) }.show()
+            .setPositiveButton("Ok") { dialogInterface, i ->
+                setBluetooth(true)
+
+                setupBleIfInList()
+            }.show()
     }
 
     private fun setBluetooth(enable: Boolean) {
@@ -216,11 +260,24 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
     override fun onResume() {
         super.onResume()
+        try {
+            registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
+            registerReceiver(mGattUpdateReceiver, gattUpdateIntentFilter())
+            registerReceiver(mReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+            registerReceiver(mReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
+        }catch (e:java.lang.Exception){
+            e.printStackTrace()
+        }
+
+        mGoogleApiClient = GoogleApiClient.Builder(this).addApi(LocationServices.API).addConnectionCallbacks(this).addOnConnectionFailedListener(this).build()
+        mGoogleApiClient.connect()
+
         setupBleIfInList()
     }
 
     private fun setupBleIfInList() {
-        if (weighingScaleListAdapter!!.blePos > 0) {
+
+        if (weighingScaleListAdapter.blePos != -1) {
             setUpBleAdapter()
             turnOnBleGps()
         }
@@ -238,16 +295,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             return
         }
 
-        if (ContextCompat.checkSelfPermission(
-                this.applicationContext,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                BluetoothUtils.REQUEST_LOCATION_ENABLE_CODE
-            )
+        if (ContextCompat.checkSelfPermission(this.applicationContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), BluetoothUtils.REQUEST_LOCATION_ENABLE_CODE)
         }
 
         if (mBluetoothAdapter?.enable() == false) {
@@ -263,11 +312,9 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         registerReceiver(mGattUpdateReceiver, gattUpdateIntentFilter())
         registerReceiver(mReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
         registerReceiver(mReceiver, IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION))
+        registerReceiver(wifiStateReceiver, IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
 
-        mGoogleApiClient =
-            GoogleApiClient.Builder(this).addApi(LocationServices.API).addConnectionCallbacks(
-                this
-            ).addOnConnectionFailedListener(this).build()
+        mGoogleApiClient = GoogleApiClient.Builder(this).addApi(LocationServices.API).addConnectionCallbacks(this).addOnConnectionFailedListener(this).build()
         mGoogleApiClient.connect()
     }
 
@@ -285,11 +332,12 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     private fun setUpViewModel(activityMainBinding: ActivityMainBinding) {
         scaleViewModel = ViewModelProvider(this, factory).get(WeighingScaleViewModel::class.java)
         activityMainBinding.viewModel = scaleViewModel
-        scaleViewModel.getAllScales.observe(this, { scalesList ->
+
+        scaleViewModel.getAllScales.observe(this) { scalesList ->
             scaleViewModel.showEmptyView.set(scalesList.isNullOrEmpty())
-            weighingScaleListAdapter?.setAllScales(scalesList.toMutableList())
+            weighingScaleListAdapter.setAllScales(scalesList.toMutableList())
             setupBleIfInList()
-        })
+        }
     }
 
     private fun setUpRecyclerView(activityMainBinding: ActivityMainBinding) {
@@ -299,7 +347,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
         weighingScaleListAdapter = WeighingScaleListAdapter(this)
         recyclerView?.adapter = weighingScaleListAdapter
-        weighingScaleListAdapter?.setContext(this)
+        weighingScaleListAdapter.setContext(this)
 
     }
 
@@ -329,8 +377,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         return when (item.itemId) {
             R.id.action_bluetooth -> {
 
-                if (weighingScaleListAdapter?.blePos == -1) {
-                    val scale = weighingScaleListAdapter!!.getWeighingScale(ScaleType.BLUETOOTH)
+                if (weighingScaleListAdapter.blePos == -1) {
+                    val scale = weighingScaleListAdapter.getWeighingScale(ScaleType.BLUETOOTH)
                     scaleViewModel.insertScale(scale)
                     setUpBleAdapter()
                     turnOnBleGps()
@@ -342,13 +390,18 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
                 true
             }
             R.id.action_local_wifi -> {
-                val scale = weighingScaleListAdapter!!.getWeighingScale(ScaleType.WIFI)
-                scaleViewModel.insertScale(scale)
-                showToast("${scale.name} Added!!")
+
+                if(getSSID().equals(SSID)){
+                    val scale = weighingScaleListAdapter.getWeighingScale(ScaleType.WIFI)
+                    scaleViewModel.insertScale(scale)
+                    showToast("${scale.name} Added!!")
+                }else{
+                    showToast(WIFI_MSG_CONNECT_SCALE)
+                }
                 true
             }
             R.id.action_internet -> {
-                val scale = weighingScaleListAdapter!!.getWeighingScale(ScaleType.INTERNET)
+                val scale = weighingScaleListAdapter.getWeighingScale(ScaleType.INTERNET)
                 scaleViewModel.insertScale(scale)
                 showToast("${scale.name} Added!!")
                 true
@@ -367,7 +420,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
     private val mServiceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(componentName: ComponentName, service: IBinder) {
-            mBluetoothLEService = (service as BluetoothLEService.LocalBinder).getService()
+            mBluetoothLEService = (service as BluetoothLEService.LocalBinder).service
             if (mBluetoothLEService?.initialize() == false) {
                 Log.e(TAG, "Unable to initialize Bluetooth")
                 finish()
@@ -389,9 +442,9 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             bluetoothDevice = result.device
             val gattServiceIntent = Intent(this@MainActivity, BluetoothLEService::class.java)
             bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE)
-            Log.d(TAG, "address: " + bluetoothDevice?.getAddress())
-            weighingScaleListAdapter!!.getWeighingScale(ScaleType.BLUETOOTH).visible = View.GONE
-            weighingScaleListAdapter?.notifyDataSetChanged()
+            Log.d(TAG, "address: " + bluetoothDevice?.address)
+            weighingScaleListAdapter.getWeighingScale(ScaleType.BLUETOOTH).visible = View.GONE
+            weighingScaleListAdapter.notifyDataSetChanged()
         }
 
         override fun onBatchScanResults(results: List<ScanResult>) {
@@ -430,9 +483,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             mHandler.postDelayed({
                 if (bluetoothLeScanner != null) {
                     try {
-                        weighingScaleListAdapter!!.getItemAtPosition(weighingScaleListAdapter!!.blePos).visible =
-                            View.GONE
-                        weighingScaleListAdapter?.notifyDataSetChanged()
+                        weighingScaleListAdapter.getItemAtPosition(weighingScaleListAdapter.blePos).visible = View.GONE
+                        weighingScaleListAdapter.notifyDataSetChanged()
                     } catch (e: java.lang.Exception) {
                         e.message
                     }
@@ -442,9 +494,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             }, BluetoothUtils.SCAN_PERIOD)
             if (bluetoothLeScanner != null) {
                 try {
-                    weighingScaleListAdapter!!.getItemAtPosition(weighingScaleListAdapter!!.blePos).visible =
-                        View.VISIBLE
-                    weighingScaleListAdapter?.notifyDataSetChanged()
+                    weighingScaleListAdapter.getItemAtPosition(weighingScaleListAdapter.blePos).visible = View.VISIBLE
+                    weighingScaleListAdapter.notifyDataSetChanged()
                 } catch (e: java.lang.Exception) {
                     e.message
                 }
@@ -454,9 +505,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             mHandler.post {
                 if (bluetoothLeScanner != null) {
                     try {
-                        weighingScaleListAdapter!!.getItemAtPosition(weighingScaleListAdapter!!.blePos).visible =
-                            View.GONE
-                        weighingScaleListAdapter?.notifyDataSetChanged()
+                        weighingScaleListAdapter.getItemAtPosition(weighingScaleListAdapter.blePos).visible =View.GONE
+                        weighingScaleListAdapter.notifyDataSetChanged()
                     } catch (e: java.lang.Exception) {
                         e.message
                     }
@@ -467,7 +517,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     }
 
     override fun onTareClick(position: Int) {
-        if(weighingScaleListAdapter!!.getItemAtPosition(position).type==ScaleType.WIFI){
+        if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.WIFI){
 
             if (null != clientThread) {
                 clientThread?.sendMessage("T")
@@ -488,8 +538,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     }
 
     override fun onModeClick(position: Int) {
-
-        if(weighingScaleListAdapter!!.getItemAtPosition(position).type==ScaleType.WIFI){
+        if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.WIFI){
 
             if (null != clientThread) {
                 clientThread?.sendMessage("M")
@@ -512,7 +561,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     override fun onMPlusIncClick(position: Int) {
 
 
-        if(weighingScaleListAdapter!!.getItemAtPosition(position).type==ScaleType.WIFI){
+        if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.WIFI){
 
             if (null != clientThread) {
                 clientThread?.sendMessage("I")
@@ -534,7 +583,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
     override fun onMRShiftClick(position: Int) {
 
-        if(weighingScaleListAdapter!!.getItemAtPosition(position).type==ScaleType.WIFI){
+        if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.WIFI){
 
             if (null != clientThread) {
                 clientThread?.sendMessage("S")
@@ -557,11 +606,16 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     override fun onRefreshScaleFABClick(position: Int) {
 
         if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.WIFI){
-            if (clientThread == null) {
-                clientThread = WifiClientThread()
+            if(getSSID().equals(SSID)){
+                if (clientThread == null) {
+                    clientThread = WifiClientThread()
+                }
                 val thread = Thread(clientThread)
                 thread.start()
+            }else{
+                showToast(WIFI_MSG_CONNECT_SCALE)
             }
+
         }else if(weighingScaleListAdapter.getItemAtPosition(position).type==ScaleType.BLUETOOTH){
             try {
                 setUpBleAdapter()
@@ -585,6 +639,8 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             setBluetooth(false)
             weighingScaleListAdapter.blePos = -1
         }else if(scale.type == ScaleType.WIFI){
+
+            unregisterReceiver(wifiStateReceiver)
             clientThread?.setStop()
             clientThread=null
         }
