@@ -639,10 +639,13 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             setBluetooth(false)
             weighingScaleListAdapter.blePos = -1
         }else if(scale.type == ScaleType.WIFI){
-
-            unregisterReceiver(wifiStateReceiver)
-            clientThread?.setStop()
-            clientThread=null
+//            try{
+//                unregisterReceiver(wifiStateReceiver)
+//            }catch (e:Exception){
+//                e.printStackTrace()
+//            }
+//            clientThread?.setStop()
+//            clientThread=null
         }
 
         scaleViewModel.deleteScale(scale)
