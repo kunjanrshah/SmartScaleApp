@@ -63,8 +63,8 @@ public class WifiClientThread implements Runnable {
 
     public void showMessage(String message,String macAddress){
         handler.post(() -> {
-            MainActivity.Companion.getWeighingScaleListAdapter().setWifiScaleWeight(message.trim());
-            MainActivity.Companion.getWeighingScaleListAdapter().setWifiScaleName(macAddress.trim());
+            MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight().setText(message.trim());
+            MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleName().setText(macAddress.trim());
         });
     }
 

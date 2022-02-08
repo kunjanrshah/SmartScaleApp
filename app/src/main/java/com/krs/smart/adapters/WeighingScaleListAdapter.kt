@@ -22,8 +22,9 @@ class WeighingScaleListAdapter(listener: ControlButtonsClickListener) :
     private var weighingScales: MutableList<WeighingScale> = arrayListOf()
     private var controlButtonsClickListener = listener
     var bleScaleWeight:TextView?=null
-    var wifiScaleWeight:String?=null
-    var wifiScaleName:String?=null
+    var wifiScaleWeight:TextView?=null
+    var mqttScaleWeight:TextView?=null
+    var wifiScaleName:TextView?=null
 
     private var context: Context? =null
     var blePos:Int=-1
@@ -54,10 +55,11 @@ class WeighingScaleListAdapter(listener: ControlButtonsClickListener) :
             }
             blePos=position
         } else if(holder.weighingScaleBinding.scale?.type==ScaleType.WIFI){
-            wifiScaleWeight = holder.weighingScaleBinding.scale?.weights
-            wifiScaleName=holder.weighingScaleBinding.scale?.name
+            wifiScaleWeight = holder.weighingScaleBinding.scaleWeight
+            wifiScaleName=holder.weighingScaleBinding.scaleTitle
         }else if(holder.weighingScaleBinding.scale?.type==ScaleType.INTERNET){
-
+            mqttScaleWeight=holder.weighingScaleBinding.scaleWeight
+            holder.weighingScaleBinding.scale?.name=""
         }
     }
 

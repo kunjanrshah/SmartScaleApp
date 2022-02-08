@@ -33,9 +33,7 @@ import com.krs.smart.adapters.WeighingScaleListAdapter
 import com.krs.smart.bleUtils.BluetoothLEService
 import com.krs.smart.bleUtils.BluetoothUtils
 import com.krs.smart.callbacks.ControlButtonsClickListener
-import com.krs.smart.model.Message
 import com.krs.smart.room.model.ScaleType
-import com.krs.smart.service.MessageService
 import com.krs.smart.utils.applyTint
 import com.krs.smart.viewmodel.WeighingScaleViewModel
 import com.krs.smart.viewmodel.WeighingScaleViewModelFactory
@@ -48,6 +46,8 @@ import com.google.android.gms.common.api.ResultCallback
 import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
 import com.krs.smart.databinding.ActivityMainBinding
+import com.krs.smart.mqtt.Message
+import com.krs.smart.mqtt.MessageService
 import javax.inject.Inject
 
 
@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     private lateinit var mGoogleApiClient: GoogleApiClient
     private var result: PendingResult<LocationSettingsResult>? = null
     private var connected: Boolean? = null
-
+    private var service:Intent?=null
     companion object {
         lateinit var weighingScaleListAdapter: WeighingScaleListAdapter
         var bluetoothDevice: BluetoothDevice?=null
@@ -82,7 +82,6 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
 
         val activityMainBinding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
@@ -115,9 +114,12 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             Log.e(TAG, "App crashed!! Exception:", ex)
         }
 
-        // schedule message service
-        val service = Intent(applicationContext, MessageService::class.java)
-        applicationContext.startService(service)
+        Handler().postDelayed({
+            if(weighingScaleListAdapter.mqttScaleWeight!=null){
+                service = Intent(applicationContext, MessageService::class.java)
+                applicationContext.startService(service)
+            }
+        },2000)
     }
 
 
@@ -126,8 +128,10 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         Snackbar.make(findViewById(android.R.id.content), alert.toString(), Snackbar.LENGTH_LONG).setAction("Action", null).show()
     }
 
-    private fun displayMessage(message: Message?) {
-        Log.i(TAG, "MQTT message incoming: " + message?.message)
+    private fun displayMessage(message1: Message?) {
+        Log.i(TAG, "MQTT message incoming: " + message1?.message)
+        weighingScaleListAdapter.mqttScaleWeight?.text=message1?.message
+
     }
 
     private fun changeConnectionStatus(status: Boolean) {
@@ -260,20 +264,11 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         override fun onReceive(context: Context, intent: Intent) {
             val action = intent.action
             if (BluetoothAdapter.ACTION_STATE_CHANGED == action) {
-                if (intent.getIntExtra(
-                        BluetoothAdapter.EXTRA_STATE,
-                        -1
-                    ) == BluetoothAdapter.STATE_OFF
-                ) {
+                if (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1) == BluetoothAdapter.STATE_OFF) {
                     alert()
                 }
             }
-            if (LocationManager.PROVIDERS_CHANGED_ACTION == action) {
-
-                mGoogleApiClient = GoogleApiClient.Builder(this@MainActivity).addApi(
-                    LocationServices.API
-                ).addConnectionCallbacks(this@MainActivity)
-                    .addOnConnectionFailedListener(this@MainActivity).build()
+            if (LocationManager.PROVIDERS_CHANGED_ACTION == action) { mGoogleApiClient = GoogleApiClient.Builder(this@MainActivity).addApi(LocationServices.API).addConnectionCallbacks(this@MainActivity).addOnConnectionFailedListener(this@MainActivity).build()
                 mGoogleApiClient.connect()
             }
         }
@@ -315,8 +310,10 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
             val localBroadcastManager = LocalBroadcastManager.getInstance(this)
             localBroadcastManager.registerReceiver(alertReceiver!!, IntentFilter(MessageService.EVENT_ALERT))
-            localBroadcastManager.registerReceiver(connectionReceiver!!, IntentFilter(MessageService.EVENT_BROKER_CONNECTION))
-            localBroadcastManager.registerReceiver(messageReceiver!!, IntentFilter(MessageService.EVENT_MESSAGE))
+            localBroadcastManager.registerReceiver(connectionReceiver!!, IntentFilter(
+                MessageService.EVENT_BROKER_CONNECTION))
+            localBroadcastManager.registerReceiver(messageReceiver!!, IntentFilter(
+                MessageService.EVENT_MESSAGE))
 
         }catch (e:java.lang.Exception){
             e.printStackTrace()
@@ -401,7 +398,6 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         weighingScaleListAdapter = WeighingScaleListAdapter(this)
         recyclerView?.adapter = weighingScaleListAdapter
         weighingScaleListAdapter.setContext(this)
-
     }
 
     private fun setUpToolBar() {
@@ -458,6 +454,11 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             R.id.action_internet -> {
                 val scale = weighingScaleListAdapter.getWeighingScale(ScaleType.INTERNET)
                 scaleViewModel.insertScale(scale)
+
+                // schedule message service
+                service = Intent(applicationContext, MessageService::class.java)
+                applicationContext.startService(service)
+
                 showToast("${scale.name} Added!!")
                 true
             }
@@ -696,8 +697,11 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             closeConnection()
             setBluetooth(false)
             weighingScaleListAdapter.blePos = -1
+        }else if(scale.type == ScaleType.INTERNET){
+            if(service!=null){
+                stopService(service)
+            }
         }
-
         scaleViewModel.deleteScale(scale)
         showToast("${scale.name} Removed!!")
     }
