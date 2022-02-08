@@ -9,10 +9,10 @@
             type="Integer" />
        <variable
             name="scale"
-            type="com.epamgarage.wirelessweighingscale.room.model.WeighingScale" />
+            type="com.krs.smart.room.model.WeighingScale" />
         <variable
             name="callback"
-            type="com.epamgarage.wirelessweighingscale.callbacks.ControlButtonsClickListener" />
+            type="com.krs.smart.callbacks.ControlButtonsClickListener" />
 
         <import type="android.view.View" />
     </data>

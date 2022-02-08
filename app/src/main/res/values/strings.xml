@@ -16,4 +16,9 @@
     <string name="mr_shift">MR / Shift</string>
     <string name="click_button_to_add_new_scale">Click \'+\' button to add new Scale.</string>
 
+    <!-- Strings related to Notication -->
+    <string name="alert_notification_ticker">MQTT message has arrived</string>
+    <string name="alert_notification_title">MQTT message</string>
+    <string name="alert_notification_subtitle">On channel %1$s</string>
+
 </resources>
