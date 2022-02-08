@@ -8,7 +8,7 @@
 
         <variable
             name="viewModel"
-            type="com.epamgarage.wirelessweighingscale.viewmodel.WeighingScaleViewModel" />
+            type="com.krs.smart.viewmodel.WeighingScaleViewModel" />
 
         <import type="android.view.View" />
     </data>
