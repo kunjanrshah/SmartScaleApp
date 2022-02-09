@@ -51,7 +51,7 @@ class WeighingScaleListAdapter(listener: ControlButtonsClickListener) :
         if (holder.weighingScaleBinding.scale?.type==ScaleType.BLUETOOTH){
             bleScaleWeight=holder.weighingScaleBinding.scaleWeight
             if(MainActivity.bluetoothDevice!=null){
-                holder.weighingScaleBinding.scale?.name= MainActivity.bluetoothDevice?.address.toString()
+                holder.weighingScaleBinding.scale?.name= MainActivity.bluetoothDevice?.name.toString()+" "+ MainActivity.bluetoothDevice?.address.toString()
             }
             blePos=position
         } else if(holder.weighingScaleBinding.scale?.type==ScaleType.WIFI){

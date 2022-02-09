@@ -73,4 +73,5 @@ dependencies {
     implementation 'com.github.EspressifApp:lib-esptouch-v2-android:2.1.0'
     implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${rootProject.clientVersion}"
     implementation "org.eclipse.paho:org.eclipse.paho.android.service:${rootProject.serviceVersion}"
+    implementation 'com.github.marcoscgdev:DialogSheet:2.1.2'
 }

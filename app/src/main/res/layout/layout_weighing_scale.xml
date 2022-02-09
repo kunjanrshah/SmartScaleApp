@@ -146,7 +146,8 @@
                             android:textSize="12sp"
                             android:textStyle="bold"
                             bind:ignore="RelativeOverlap"
-                            bind:scaleTitle="@{scale.name}"/>
+                            android:onClick="@{(v) -> callback.onTitleClick(position)}"
+                            bind:scaleTitle="@{scale.name}" />
 
                         <me.ibrahimsn.lib.CirclesLoadingView
                             android:id="@+id/view_loading"
