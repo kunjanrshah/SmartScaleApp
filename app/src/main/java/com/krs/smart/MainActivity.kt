@@ -72,6 +72,41 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         lateinit var weighingScaleListAdapter: WeighingScaleListAdapter
         var bluetoothDevice: BluetoothDevice? = null
         var clientThread: WifiClientThread? = null
+        var isOpen=true
+        private lateinit var context: Context
+
+        fun setContext(con: Context) {
+            context=con
+        }
+
+        fun openProvisionDialog(){
+            val view = View.inflate(context, R.layout.provisioning_dialog_view, null)
+            val dialogSheet = DialogSheet(context).setView(view)
+            val view1 = dialogSheet.inflatedView
+            val edtUser = view1?.findViewById<EditText>(R.id.edt_user)
+            val edtPass = view1?.findViewById<EditText>(R.id.edt_pass)
+
+            dialogSheet.setTitle("Share your Internet")
+                .setMessage("Enter the Credentials to connect the scale with internet")
+                .setColoredNavigationBar(true)
+                .setTitleTextSize(20) // In SP
+                .setCancelable(true)
+                .setPositiveButton("Connect") {
+
+                    val user = edtUser?.text.toString().trim()
+                    val pass = edtPass?.text.toString().trim()
+                    if (user.isNotEmpty() && pass.isNotEmpty()) {
+                        clientThread?.sendMessage("$user,$pass")
+                    } else {
+                        Toast.makeText(context, "Please enter internet credentials", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel) {
+                    // Your action
+                }
+                .setBackgroundColor(context.resources.getColor(R.color.app_background_primary)) // Your custom background color
+            dialogSheet.show()
+        }
     }
 
     private var mBluetoothAdapter: BluetoothAdapter? = null
@@ -87,15 +122,15 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val activityMainBinding: ActivityMainBinding =
-            DataBindingUtil.setContentView(this, R.layout.activity_main)
+        val activityMainBinding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        setContext(this)
         injectActivity()
         setUpToolBar()
         setUpRecyclerView(activityMainBinding)
         setUpViewModel(activityMainBinding)
-        llParent = activityMainBinding.llParent;
+        llParent = activityMainBinding.llParent
 
         alertReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -255,16 +290,9 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 
             if (flag) {
                 if (getSSID().equals(SSID)) {
-                    val snbar: Snackbar =
-                        Snackbar.make(llParent!!, WIFI_MSG_SCALE_CONNECTED, Snackbar.LENGTH_LONG);
-                    snbar.show()
+                    Snackbar.make(llParent!!, WIFI_MSG_SCALE_CONNECTED, Snackbar.LENGTH_LONG).show()
                 } else {
-                    val snbar: Snackbar = Snackbar.make(
-                        llParent!!,
-                        WIFI_MSG_CONNECT_SCALE,
-                        Snackbar.LENGTH_INDEFINITE
-                    );
-                    snbar.show()
+                    Snackbar.make(llParent!!, WIFI_MSG_CONNECT_SCALE, Snackbar.LENGTH_INDEFINITE).show()
                 }
             }
         }
@@ -634,17 +662,17 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         val edit_name = view1?.findViewById<EditText>(R.id.edit_name)
         edit_name?.setText(bluetoothDevice?.name.toString())
 
-        dialogSheet.setTitle("Change scale name")
+        dialogSheet.setTitle("Change bluetooth name")
             .setMessage("Press Change and Restart your Scale")
             .setColoredNavigationBar(true)
             .setTitleTextSize(20) // In SP
             .setCancelable(true)
             .setPositiveButton("Change") {
 
-                val name = edit_name?.text.toString()
+                val name = edit_name?.text.toString().trim()
                 if (name.isNotEmpty()) {
                     if (mNotifyCharacteristic != null) {
-                        mBluetoothLEService?.writeCharacteristic(mNotifyCharacteristic!!, name)
+                        mBluetoothLEService?.writeCharacteristic(mNotifyCharacteristic!!, name.trim())
                     } else {
                         Toast.makeText(this, "Please connect your scale", Toast.LENGTH_SHORT).show()
                     }
@@ -667,7 +695,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         if (weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.WIFI) {
 
             if (null != clientThread) {
-                clientThread?.sendMessage("T")
+                 clientThread?.sendMessage("T")
             } else {
                 Toast.makeText(this@MainActivity, "Please connect again!", Toast.LENGTH_SHORT)
                     .show()
@@ -754,9 +782,11 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
 //        )
     }
 
+
+
     override fun onRefreshScaleFABClick(position: Int) {
 
-        if (weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.WIFI) {
+        if (weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.WIFI || weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.INTERNET) {
             if (getSSID().equals(SSID)) {
                 if (clientThread == null) {
                     clientThread = WifiClientThread()
@@ -766,7 +796,12 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             } else {
                 showToast(WIFI_MSG_CONNECT_SCALE)
             }
-
+            if(weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.INTERNET){
+                val str=weighingScaleListAdapter.mqttScaleWeight?.text.toString()
+                if(str.isNotEmpty() && str.length>4){
+                    openProvisionDialog()
+                }
+            }
         } else if (weighingScaleListAdapter.getItemAtPosition(position).type == ScaleType.BLUETOOTH) {
             try {
                 setUpBleAdapter()
@@ -789,10 +824,19 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
             closeConnection()
             setBluetooth(false)
             weighingScaleListAdapter.blePos = -1
+            weighingScaleListAdapter.bleScaleWeight=null
         } else if (scale.type == ScaleType.INTERNET) {
+            weighingScaleListAdapter.mqttScaleWeight=null
             if (service != null) {
                 stopService(service)
             }
+            clientThread?.setStop()
+            clientThread=null
+            Handler().postDelayed(Runnable {
+                isOpen=true
+            },2000)
+        } else if(scale.type == ScaleType.WIFI){
+            weighingScaleListAdapter.wifiScaleWeight=null
         }
         scaleViewModel.deleteScale(scale)
         showToast("${scale.name} Removed!!")
