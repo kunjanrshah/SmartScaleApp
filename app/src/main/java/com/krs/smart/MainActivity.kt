@@ -13,7 +13,6 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.*
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -44,6 +43,7 @@ import com.krs.smart.databinding.ActivityMainBinding
 import com.krs.smart.mqtt.Message
 import com.krs.smart.mqtt.MessageService
 import com.krs.smart.room.model.ScaleType
+import com.krs.smart.utils.Log
 import com.krs.smart.utils.applyTint
 import com.krs.smart.viewmodel.WeighingScaleViewModel
 import com.krs.smart.viewmodel.WeighingScaleViewModelFactory
@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity(), ControlButtonsClickListener,
         }
 
         Thread.setDefaultUncaughtExceptionHandler { thread, ex ->
-            Log.e(TAG, "App crashed!! Exception:", ex)
+            Log.e(TAG, "App crashed!! Exception:")
         }
 
         Handler().postDelayed({
