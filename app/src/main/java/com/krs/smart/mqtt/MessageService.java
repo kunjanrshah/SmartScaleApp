@@ -127,9 +127,9 @@ public class MessageService extends Service {
                     displayAlert("Failed to connect to: " + serverUri);
                 }
             });
-
-
         } catch (MqttException ex) {
+            Log.e(TAG, "MqttException while connecting", ex);
+        }catch (Exception ex) {
             Log.e(TAG, "Exception while connecting", ex);
         }
 

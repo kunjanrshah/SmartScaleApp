@@ -1,9 +1,10 @@
 package com.krs.smart.wifiUtils;
 
 import android.os.Handler;
-import android.util.Log;
+
 
 import com.krs.smart.MainActivity;
+import com.krs.smart.utils.Log;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -63,8 +64,24 @@ public class WifiClientThread implements Runnable {
 
     public void showMessage(String message,String macAddress){
         handler.post(() -> {
-            MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight().setText(message.trim());
-            MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleName().setText(macAddress.trim());
+            if(MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight()!=null && MainActivity.Companion.getWeighingScaleListAdapter().getMqttScaleWeight()!=null){
+                MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight().setText(message.trim());
+                MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleName().setText(macAddress.trim());
+                MainActivity.Companion.getWeighingScaleListAdapter().getMqttScaleWeight().setText(message.trim());
+                if(MainActivity.Companion.isOpen() && !message.trim().isEmpty() && message.trim().length()>4 ){
+                    MainActivity.Companion.setOpen(false);
+                    MainActivity.Companion.openProvisionDialog();
+                }
+            }else if(MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight()!=null){
+                MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleWeight().setText(message.trim());
+                MainActivity.Companion.getWeighingScaleListAdapter().getWifiScaleName().setText(macAddress.trim());
+            }else if(MainActivity.Companion.getWeighingScaleListAdapter().getMqttScaleWeight()!=null){
+                MainActivity.Companion.getWeighingScaleListAdapter().getMqttScaleWeight().setText(message.trim());
+                if(MainActivity.Companion.isOpen() && !message.trim().isEmpty() && message.trim().length()>4 ){
+                    MainActivity.Companion.setOpen(false);
+                    MainActivity.Companion.openProvisionDialog();
+                }
+            }
         });
     }
 
@@ -107,7 +124,7 @@ public class WifiClientThread implements Runnable {
     public void setStop(){
         try {
             socket.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
