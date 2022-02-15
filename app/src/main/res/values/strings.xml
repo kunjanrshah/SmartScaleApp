@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Smart Indicator</string>
+    <string name="app_name">SmartScale</string>
     <string name="screen_title">Smart Indicators</string>
     <string name="refresh">Refresh</string>
     <string name="settings">Settings</string>
