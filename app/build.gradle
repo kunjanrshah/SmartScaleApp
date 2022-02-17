@@ -66,12 +66,9 @@ dependencies {
     implementation "com.google.dagger:dagger-android:$rootProject.dagger_version"
     kapt "com.google.dagger:dagger-compiler:$rootProject.dagger_version"
 
-
     implementation 'com.google.android.gms:play-services-location:19.0.1'
     implementation 'com.github.ibrahimsn98:CirclesLoadingView:1.0'
 
-    implementation 'com.github.EspressifApp:lib-esptouch-android:1.0.0'
-    implementation 'com.github.EspressifApp:lib-esptouch-v2-android:2.1.0'
     implementation "org.eclipse.paho:org.eclipse.paho.client.mqttv3:${rootProject.clientVersion}"
     implementation "org.eclipse.paho:org.eclipse.paho.android.service:${rootProject.serviceVersion}"
     implementation 'com.github.marcoscgdev:DialogSheet:2.1.2'
